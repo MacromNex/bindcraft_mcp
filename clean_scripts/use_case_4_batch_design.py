@@ -77,21 +77,29 @@ def generate_target_settings(
     binder_length: int = 130,
     num_designs: int = 2
 ) -> Dict[str, Any]:
-    """Generate target settings JSON for BindCraft."""
+    """Generate target settings JSON for BindCraft in correct format.
+
+    Returns settings in the format expected by run_bindcraft.py:
+    - design_path: Output directory for designed binders
+    - binder_name: Prefix name for designed binders
+    - starting_pdb: Target protein PDB structure
+    - chains: Target chain(s) to design binder against
+    - target_hotspot_residues: Residue numbers to target (comma-separated)
+    - lengths: [min_length, max_length] range for binder length
+    - number_of_final_designs: Target number of accepted designs
+    """
     target_pdb_abs = resolve_path(target_pdb)
     output_dir_abs = resolve_path(output_dir)
 
     settings = {
-        "target_pdb": target_pdb_abs,
-        "target_chains": chains,
+        "design_path": output_dir_abs,                    # NOT "output_dir"
         "binder_name": name,
-        "binder_length": binder_length,
-        "num_designs": num_designs,
-        "output_dir": output_dir_abs,
+        "starting_pdb": target_pdb_abs,                   # NOT "target_pdb"
+        "chains": chains,                                  # NOT "target_chains"
+        "target_hotspot_residues": hotspot if hotspot else "",  # NOT "hotspot"
+        "lengths": [binder_length, binder_length],        # Array format, NOT single int
+        "number_of_final_designs": num_designs            # NOT "num_designs"
     }
-
-    if hotspot:
-        settings["hotspot"] = hotspot
 
     return settings
 
@@ -127,6 +135,9 @@ def submit_single_job(
         settings_file = job_output_dir / "target_settings.json"
         save_json(target_settings, settings_file)
 
+        # Get absolute path to settings file
+        settings_file_abs = str(settings_file.resolve())
+
         # Prepare command
         filters_json = defaults["filters"] if config["filters_enabled"] else None
         advanced_json = defaults["advanced"]
@@ -134,7 +145,7 @@ def submit_single_job(
         cmd = [
             sys.executable,
             str(bindcraft_path / "run_bindcraft.py"),
-            f"--settings={settings_file}",
+            f"--settings={settings_file_abs}",
         ]
 
         if filters_json:

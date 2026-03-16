@@ -44,6 +44,20 @@ cd bindcraft_mcp
 # Build the Docker image
 docker build -t bindcraft_mcp:latest .
 
+# Build with proxy (recommended for users in China)
+docker build --build-arg HTTP_PROXY=http://host.docker.internal:7890 \
+             --build-arg HTTPS_PROXY=http://host.docker.internal:7890 \
+             -t bindcraft_mcp:latest .
+```
+
+**Note for users in China:** The Dockerfile is pre-configured to use USTC mirrors for both conda and pip, which significantly speeds up package downloads without requiring a proxy:
+- **Conda**: `https://mirrors.ustc.edu.cn/anaconda/cloud/conda-forge`
+- **PyPI**: `https://mirrors.ustc.edu.cn/pypi/simple`
+
+```bash
+# Build without proxy (uses USTC mirrors by default)
+docker build -t bindcraft_mcp:latest .
+
 # Register with Claude Code (runs as current user to avoid permission issues)
 claude mcp add bindcraft -- docker run -i --rm --user `id -u`:`id -g` --gpus all --ipc=host -v `pwd`:`pwd` bindcraft_mcp:latest
 ```
